@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Minecraft 1.8.8 (EaglercraftX), in a web browser" />
+<meta name="keywords" content="eaglercraft, eaglercraftx, minecraft, 1.8, 1.8.8" />
+<title>Minecraft 1.8.8</title>
+<meta property="og:locale" content="en-US" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Minecraft 1.8.8" />
+<meta property="og:description" content="An online version of EaglercraftX. Play Minecraft 1.8.8 on a Chromebook!" />
+<link type="image/ico" rel="shortcut icon" href="favicon.ico" />
+
+<script type="5993c52842ea5a7bced6109e-text/javascript" src="fix-webm-duration.js"></script>
+<script type="5993c52842ea5a7bced6109e-text/javascript" src="largeEPK.js"></script>
+<script type="5993c52842ea5a7bced6109e-text/javascript" src="sha256.js"></script>
+<script type="5993c52842ea5a7bced6109e-text/javascript">
+			"use strict";
+			window.addEventListener("load", async () => {
+				if(document.location.href.startsWith("file:")) {
+					alert("HTTP please, do not open this file locally, run a local HTTP server and load it via HTTP");
+				}else {
+					const LEPK_ASSETS = "gameAssets/meta.json";
+					const LEPK_JS = "javascript/meta.json";
+					let assetsURI = null;
+					let downloadedJavascript = null;
+
+					const dbName = 'cache';
+					const dbVersion = 1;
+
+					async function setCachedAsset(name, arrayBuffer) {
+						const db = await openDatabase();
+						const transaction = db.transaction('cache', 'readwrite');
+						const objectStore = transaction.objectStore('cache');
+						objectStore.put(arrayBuffer, name);
+						transaction.oncomplete = () => {
+							db.close();
+						};
+					}
+
+					async function getCachedAsset(name) {
+						const db = await openDatabase();
+						const transaction = db.transaction('cache', 'readonly');
+						const objectStore = transaction.objectStore('cache');
+						const getRequest = objectStore.get(name);
+						return new Promise((resolve, reject) => {
+							getRequest.onsuccess = event => {
+								resolve(event.target.result);
+							};
+							getRequest.onerror = event => {
+								reject(event.target.error);
+							};
+						}).finally(() => {
+							db.close();
+						});
+					}
+
+					async function openDatabase() {
+						return new Promise((resolve, reject) => {
+							const request = indexedDB.open(dbName, dbVersion);
+							request.onerror = () => {
+								reject(request.error);
+							};
+							request.onupgradeneeded = event => {
+								const db = event.target.result;
+								db.createObjectStore('cache');
+							};
+							request.onsuccess = event => {
+								const db = event.target.result;
+								resolve(db);
+							};
+						});
+					}
+
+					const loadingScreen = document.getElementById("loading-div");
+					const loadingScreenText = document.getElementById("action-block");
+					const loadingScreenContextText = document.getElementById("context-block");
+					const loadingScreenProgress = document.getElementById("progress-bar");
+					const loadingScreenProgressContainer = document.getElementById("progress-bar-container");
+
+					try {
+						const cacheFetch = await getCachedAsset("epk");
+						if (cacheFetch != null) {
+							console.info(`[bootstrap] Loaded cached assets.epk: <${cacheFetch.byteLength} bytes>`);
+							const hash = new jsSHA("SHA-256", "ARRAYBUFFER").update(cacheFetch).getHash("HEX"),
+									fetchedMetadata = await new EPKLib.LargeEPK(LEPK_ASSETS, "URL").fetchMetadata();
+							if (fetchedMetadata.hash === hash) {
+								console.info("[bootstrap] Cache has matching assets.epk SHA256 hash, hash: " + hash);
+								console.info("[bootstrap] Finished loading assets, downloading JavaScript...");
+								assetsURI = URL.createObjectURL(new Blob([cacheFetch], { type: 'application/octet-stream' }));
+							} else {
+								console.warn(`[bootstrap] Mismatching asset.epk hashes detected! Cache hash: ${hash}, metadata hash: ${fetchedMetadata.hash}.`);
+								console.warn(`[bootstrap] This isn't necessarily bad - the server's assets.epk might've updated. Proceeding to redownload assets.epk...`);
+								console.info("[bootstrap] Redownloading assets.epk...");
+								loadingScreenText.textContent = "Updating assets...";
+								loadingScreenProgressContainer.hidden = false;
+
+								const progress = fetchedMetadata.fetch();
+
+								progress.progressCallback.addEventListener("progress", event => {
+									loadingScreenText.textContent = `Updating assets... (${event.overallPercent.toFixed(2)}%)`
+									loadingScreenProgress.style.width = event.overallPercent + "%";
+								});
+								await progress.promise;
+
+								const rawAssets = fetchedMetadata.getComplete();
+								await setCachedAsset("epk", rawAssets);
+
+								console.info("[bootstrap] Downloaded assets.epk, downloading JavaScript...");
+								assetsURI = URL.createObjectURL(new Blob([rawAssets], { type: 'application/octet-stream' }));
+							}
+						} else {
+							console.warn("[bootstrap] Could not find cached assets.epk - downloading...");
+							loadingScreenText.textContent = "Downloading assets...";
+							loadingScreenProgressContainer.hidden = false;
+							const lepk = await new EPKLib.LargeEPK(LEPK_ASSETS, "URL").fetchMetadata()
+							const progress = lepk.fetch()
+
+							progress.progressCallback.addEventListener("progress", event => {
+								loadingScreenText.textContent = `Downloading assets... (${event.overallPercent.toFixed(2)}%)`
+								loadingScreenProgress.style.width = event.overallPercent + "%";
+							});
+
+							await progress.promise;
+							console.log(lepk)
+
+							const rawAssets = lepk.getComplete();
+							assetsURI = URL.createObjectURL(new Blob([rawAssets], { type: 'application/octet-stream' }));
+							await setCachedAsset("epk", rawAssets);
+						}
+
+						function Utf8ArrayToStr(array) {
+							var out, i, len, c;
+							var char2, char3;
+
+							out = "";
+							len = array.length;
+							i = 0;
+							while(i < len) {
+								c = array[i++];
+								switch(c >> 4)
+								{
+									case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
+									// 0xxxxxxx
+									out += String.fromCharCode(c);
+									break;
+									case 12: case 13:
+									// 110x xxxx   10xx xxxx
+									char2 = array[i++];
+									out += String.fromCharCode(((c & 0x1F) << 6) | (char2 & 0x3F));
+									break;
+									case 14:
+										// 1110 xxxx  10xx xxxx  10xx xxxx
+										char2 = array[i++];
+										char3 = array[i++];
+										out += String.fromCharCode(((c & 0x0F) << 12) |
+												((char2 & 0x3F) << 6) |
+												((char3 & 0x3F) << 0));
+										break;
+								}
+							}
+
+							return out;
+						}
+
+						const cacheFetchJS = await getCachedAsset("js");
+						if (cacheFetchJS != null) {
+							console.info(`[bootstrap] Loaded cached JavaScript: <${cacheFetchJS.byteLength} bytes>`);
+							const hash = new jsSHA("SHA-256", "ARRAYBUFFER").update(cacheFetchJS).getHash("HEX"),
+									fetchedMetadata = await new EPKLib.LargeEPK(LEPK_JS, "URL").fetchMetadata();
+							if (fetchedMetadata.hash === hash) {
+								console.info("[bootstrap] Cache has matching classes.js SHA256 hash, hash: " + hash);
+								console.info("[bootstrap] Finished loading JavaScript, starting game...");
+								downloadedJavascript = Utf8ArrayToStr(cacheFetchJS);
+								loadingScreenText.textContent = "Starting game...";
+							} else {
+								console.warn(`[bootstrap] Mismatching classes.js hashes detected! Cache hash: ${hash}, metadata hash: ${fetchedMetadata.hash}.`);
+								console.warn(`[bootstrap] This isn't necessarily bad - the server's classes.js might've updated. Proceeding to redownload classes.js...`);
+								console.info("[bootstrap] Redownloading classes.js...");
+								loadingScreenText.textContent = "Updating code...";
+								loadingScreenProgressContainer.hidden = false;
+
+								const progress = fetchedMetadata.fetch();
+
+								progress.progressCallback.addEventListener("progress", event => {
+									loadingScreenText.textContent = `Updating code... (${event.overallPercent.toFixed(2)}%)`
+									loadingScreenProgress.style.width = event.overallPercent + "%";
+								});
+								await progress.promise;
+
+								const rawAssets = fetchedMetadata.getComplete();
+								downloadedJavascript = Utf8ArrayToStr(rawAssets);
+								await setCachedAsset("js", rawAssets);
+
+								console.info("[bootstrap] Downloaded classes.js, launching...");
+								loadingScreenText.textContent = "Launching game...";
+								loadingScreenProgressContainer.remove();
+							}
+						} else {
+							console.warn("[bootstrap] Could not find cached classes.js - downloading...");
+							loadingScreenText.textContent = "Downloading code...";
+							loadingScreenProgressContainer.hidden = false;
+							const lepk = await new EPKLib.LargeEPK(LEPK_JS, "URL").fetchMetadata()
+							const progress = lepk.fetch()
+
+							progress.progressCallback.addEventListener("progress", event => {
+								loadingScreenText.textContent = `Downloading code... (${event.overallPercent.toFixed(2)}%)`
+								loadingScreenProgress.style.width = event.overallPercent + "%";
+							});
+
+							await progress.promise;
+
+							const rawAssets = lepk.getComplete();
+							downloadedJavascript = Utf8ArrayToStr(rawAssets);
+							await setCachedAsset("js", rawAssets);
+						}
+
+						loadingScreenText.textContent = "Launching game...";
+						loadingScreenProgressContainer.remove();
+					} catch (err) {
+						alert(`Something went wrong! If this keeps happening, try resetting your cookies and other site data on your browser. Procedure may vary between browsers.\n-----\n${err.stack}`)
+						console.error(`[bootstrap] Could not load cached assets!\n${err.stack}`)
+						return;
+					}
+
+					const relayId = Math.floor(Math.random() * 3);
+					window.eaglercraftXOpts = {
+						demoMode: false,
+						container: "game_frame",
+						assetsURI,
+						localesURI: "lang/",
+						worldsDB: "worlds",
+						servers: [
+							{ addr: "wss://reading-gs.q13x.com", name: "Public Minecraft Server" },
+							{ addr: "wss://eaglerproxy.q13x.com", name: "Vanilla Proxy Server" },
+							// { addr: "wss://mc.arch.lol", name: "ArchMC" }
+						],
+						relays: [
+							{ addr: "wss://relay.deev.is/", comment: "lax1dude relay #1", primary: relayId == 0 },
+							{ addr: "wss://relay.lax1dude.net/", comment: "lax1dude relay #2", primary: relayId == 1 },
+							{ addr: "wss://relay.shhnowisnottheti.me/", comment: "ayunami relay #1", primary: relayId == 2 }
+						]
+					};
+					
+					var q = window.location.search;
+					if(typeof q === "string" && q.startsWith("?")) {
+						q = new URLSearchParams(q);
+						var s = q.get("server"), d = q.get("demo");
+						if(s) window.eaglercraftXOpts.joinServer = s;
+						if(d && d.toLowerCase() == "true") window.eaglercraftXOpts.demoMode = true;
+					}
+
+					requestAnimationFrame(() => {
+						try {
+							const jsElement = document.createElement("script");
+							jsElement.type = 'text/javascript';
+							jsElement.innerHTML = downloadedJavascript;
+							document.head.appendChild(jsElement);
+							window.eaglercraftXClientScriptElement = jsElement;
+						} catch (err) {
+							console.error("[bootstrap] Uncaught error/exception was thrown by game!");
+							console.error(err.stack ?? err);
+							alert("**** UNCAUGHT ERROR CAUGHT!\n" + (err.stack ?? err));
+						}
+						loadingScreen.remove();
+						main();
+					});
+				}
+			});
+		</script>
+</head>
+<style>body{margin:0;width:100vw;height:100vh;overflow:hidden;}</style>
+<body id="game_frame">
+<div style="margin:0px;width:100%;height:100%;font-family:sans-serif;display:flex;align-items:center;user-select:none;" id="loading-div">
+<div style="margin:auto;text-align:center;">
+<h2 id="action-block">Checking for updates...</h2>
+<h2 id="context-block">(this may take a while)</h2>
+<div style="border:2px solid black;width:100%;height:15px;padding:1px;margin-bottom:20vh;font-family: Arial, sans-serif;font-weight: bold;" hidden id="progress-bar-container">
+<div id="progress-bar" style="background-color:#ff4545;width:0%;height:100%;top:0;"></div>
+</div>
+</div>
+</div>
+<script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="5993c52842ea5a7bced6109e-|49" defer></script><script>(function(){if (!document.body) return;var js = "window['__CF$cv$params']={r:'86754e56a9a354bd',t:'MTcxMDkzMzU1My44MDQwMDA='};_cpo=document.createElement('script');_cpo.nonce='',_cpo.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js',document.getElementsByTagName('head')[0].appendChild(_cpo);";var _0xh = document.createElement('iframe');_0xh.height = 1;_0xh.width = 1;_0xh.style.position = 'absolute';_0xh.style.top = 0;_0xh.style.left = 0;_0xh.style.border = 'none';_0xh.style.visibility = 'hidden';document.body.appendChild(_0xh);function handler() {var _0xi = _0xh.contentDocument || _0xh.contentWindow.document;if (_0xi) {var _0xj = _0xi.createElement('script');_0xj.innerHTML = js;_0xi.getElementsByTagName('head')[0].appendChild(_0xj);}}if (document.readyState !== 'loading') {handler();} else if (window.addEventListener) {document.addEventListener('DOMContentLoaded', handler);} else {var prev = document.onreadystatechange || function () {};document.onreadystatechange = function (e) {prev(e);if (document.readyState !== 'loading') {document.onreadystatechange = prev;handler();}};}})();</script></body>
+</html>

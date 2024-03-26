@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dosis:wght@800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="MainStyle.css">
+<html>
+<head>
+    <title>Rainbow's Games</title>
+</head>
+<body>
+    <h1>Hi there!</h1>
+    <h3>Please enter the key William gave you.</h3>
+<div class="container"
+<form>
+    <input class="form-center" type="password" id="pswd">
+    <br>
+    <input type="button" value="SUBMIT!" onclick="checkPswd();" />
+</form>
+</div>
+<style>
+    .container {
+    display: grid;
+    place-items: center;
+    }
+  </style>
+  <br>
+  <h3>This website has been developed by William.</h1>
+</body>
+<!--Function to check password the already set password is admin-->
+<script type="text/javascript">
+    function checkPswd() {
+        var confirmPassword = "1928";
+        var password = document.getElementById("pswd").value;
+        if (password == confirmPassword) {
+             window.location="MainPage.html";
+        }
+        else{
+            alert("Password is incorrect. Try again or ask William for another access code.");
+        }
+    }
+</script>
+</body>
+</html>

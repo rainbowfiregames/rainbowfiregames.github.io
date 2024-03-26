@@ -1,0 +1,67 @@
+h1 {
+    font-family: 'Dosis', sans-serif;
+    text-align: center;
+    color: white;
+    font-size: 65px;
+    text-shadow: 5px 5px 5px #000000;}
+body {
+        background-image: url("MainBackground.jpg");
+    }
+h3 {
+        font-family: 'Dosis', sans-serif;
+        text-align: center;
+        color: white;
+        font-size: 25px;
+        text-shadow: 5px 5px 5px #000000;}
+
+button {
+            font-family: 'Dosis', sans-serif;
+            text-align: center;
+            color: white;
+            font-size: 25px;
+            text-shadow: 5px 5px 5px #000000;}
+
+
+
+#pswd {
+    color: black;
+    text-align: center;
+    box-shadow: 5px 5px 10px;
+    border-radius: 6px;
+    font-size:34px;
+}
+
+input {
+    color: rgb(38, 38, 109);
+    font-family: 'Dosis', sans-serif;
+    box-shadow: 5px 5px 5px;
+    border-radius: 6px;
+    font-size: 30px;
+}
+
+h4 {
+    font-size: 22;
+    color: white;
+    object-position: 5px 5%;
+    font-family: dosis;
+    position: fixed;
+  bottom: 900px;
+  right: 0;
+  width: 1300px;
+}
+
+h2 {
+    font-size: 32;
+    color: white;
+    text-align: center;
+    font-family: dosis;
+}
+
+a:hover, a:active {
+    color: grey;
+    text-shadow: 5px 5px 5px #000000;
+}
+
+a:link, a:visited {
+    color: white;
+}
