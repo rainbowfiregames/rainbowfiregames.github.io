@@ -5,40 +5,42 @@
 <link rel="stylesheet" href="MainStyle.css">
 <html>
 <head>
-    <title>My Path</title>
-    <link rel="icon" type="image/x-icon" href="faviconV2.png">
+    <title>Rainbow's Games</title>
 </head>
 <body>
     <h1>Hi there!</h1>
-    <h3>Please enter the key William gave you.</h3>
-<div class="container"
-<form>
-    <input class="form-center" type="password" id="pswd">
+    <h3>Please enter your name and the key William gave you.</h3>
+    <div class="container">
+        <form>
+            <input class="form-center" type="text" id="name" placeholder="Your Name">
+            <br>
+            <input class="form-center" type="password" id="pswd" placeholder="Code">
+            <br>
+            <input type="button" value="Submit!" onclick="checkPswd();"/>
+        </form>
+    </div>
+    <style>
+        .container {
+            display: grid;
+            place-items: center;
+        }
+    </style>
     <br>
-    <input type="button" value="SUBMIT!" onclick="checkPswd();" />
-</form>
-</div>
-<style>
-    .container {
-    display: grid;
-    place-items: center;
-    }
-  </style>
-  <br>
-  <h3>This website has been developed by William.</h1>
+    <h3>This website has been developed by William.</h3>
 </body>
 <!--Function to check password the already set password is admin-->
 <script type="text/javascript">
     function checkPswd() {
         var confirmPassword = "1928";
         var password = document.getElementById("pswd").value;
-        if (password == confirmPassword) {
-             window.location="MainPage.html";
-        }
-        else{
-            alert("Password is incorrect. Try again or ask William for another access code.");
+        var name = document.getElementById("name").value;
+        
+        if (password == confirmPassword && name != "") {
+            localStorage.setItem("username", name);
+            window.location.href = "MainPage.html";
+        } else {
+            alert("Please enter your name and correct access code.");
         }
     }
 </script>
-</body>
 </html>
